@@ -33,6 +33,14 @@ function initEventListeners() {
     
     // 提交按钮
     submitBtn.addEventListener('click', handleSubmit);
+    
+    // 3D查看按钮
+    const view3DBtn = document.getElementById('view3DBtn');
+    if (view3DBtn) {
+        view3DBtn.addEventListener('click', () => {
+            window.location.href = '/3d-viewer.html';
+        });
+    }
 }
 
 function handleDragOver(e) {

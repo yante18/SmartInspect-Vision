@@ -70,26 +70,171 @@
         <nav class="nav">
             <a href="/">车辆检测</a>
             <a href="/history.html" class="active">历史记录</a>
-            <a href="/api/docs" target="_blank">API文档</a>
+            <a href="/docs" target="_blank">API文档</a>
         </nav>
 
         <!-- 主内容区 -->
         <main class="content">
             <div id="historyContainer">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <h3>暂无检测记录</h3>
-                    <p>完成首次检测后，记录将显示在这里</p>
-                    <a href="/" class="btn btn-primary" style="margin-top: 20px;">去检测</a>
+                <div class="loading" style="text-align: center; padding: 40px;">
+                    <p>加载中...</p>
                 </div>
+            </div>
+            
+            <!-- 分页控件 -->
+            <div id="pagination" style="display: none; text-align: center; margin-top: 30px;">
+                <button class="btn" id="prevBtn" onclick="loadHistory(currentPage - 1)">上一页</button>
+                <span id="pageInfo" style="margin: 0 15px;"></span>
+                <button class="btn" id="nextBtn" onclick="loadHistory(currentPage + 1)">下一页</button>
             </div>
         </main>
     </div>
 
     <script>
-        // TODO: 实现历史记录查询功能
-        // 需要后端提供 /api/v1/history 接口
-        console.log('历史记录页面 - 功能开发中');
+        const API_BASE = '/api/v1';
+        let currentPage = 1;
+        const pageSize = 10;
+        let totalRecords = 0;
+
+        // 页面加载时获取历史记录
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory(1);
+        });
+
+        async function loadHistory(page) {
+            if (page < 1) return;
+            
+            currentPage = page;
+            const container = document.getElementById('historyContainer');
+            
+            try {
+                // 显示加载状态
+                container.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;"><p>加载中...</p></div>';
+                
+                // 请求数据
+                const response = await fetch(`${API_BASE}/models/history?page=${page}&page_size=${pageSize}`);
+                const result = await response.json();
+                
+                if (result.code === 0) {
+                    displayHistory(result.data);
+                } else {
+                    throw new Error(result.msg || '加载失败');
+                }
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>加载失败</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayHistory(data) {
+            const container = document.getElementById('historyContainer');
+            const pagination = document.getElementById('pagination');
+            
+            totalRecords = data.total;
+            
+            if (!data.records || data.records.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>暂无检测记录</h3>
+                        <p>完成首次检测后，记录将显示在这里</p>
+                        <a href="/" class="btn btn-primary" style="margin-top: 20px;">去检测</a>
+                    </div>
+                `;
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            // 构建表格
+            let html = `
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>原始文件名</th>
+                            <th>车辆类型</th>
+                            <th>检测对象数</th>
+                            <th>检测时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            data.records.forEach(record => {
+                const vehicleTypeText = {
+                    'sedan': '轿车',
+                    'suv': 'SUV',
+                    'truck': '卡车',
+                    'bus': '公交车'
+                }[record.vehicle_type] || record.vehicle_type;
+                
+                const time = new Date(record.created_at).toLocaleString('zh-CN');
+                
+                html += `
+                    <tr>
+                        <td>${record.id}</td>
+                        <td>${record.original_name}</td>
+                        <td>${vehicleTypeText}</td>
+                        <td>${record.detection_count}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="btn btn-small" onclick="viewDetail(${record.id})">查看详情</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteRecord(${record.id})">删除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+            
+            // 更新分页信息
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条记录`;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+            pagination.style.display = 'block';
+        }
+
+        function viewDetail(id) {
+            // TODO: 实现查看详情功能
+            alert('查看详情功能开发中，记录ID: ' + id);
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm('确定要删除这条记录吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/models/history/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.code === 0) {
+                    alert('删除成功');
+                    // 重新加载当前页
+                    loadHistory(currentPage);
+                } else {
+                    throw new Error(result.msg || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除记录失败:', error);
+                alert('删除失败: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>

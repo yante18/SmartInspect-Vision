@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
 from typing import Optional
 import uuid
 import shutil
@@ -10,6 +10,7 @@ from utils.logger import log
 from utils.validator import validator
 from models.yolo_detect import run_yolo_detection
 from models.qwen_report import generate_inspection_report
+from models.database import get_db, DetectionRecord
 from sensor.sensor_api import DetectionResult
 
 router = APIRouter()
@@ -51,6 +52,27 @@ async def detect_vehicle(
         )
         
         log.info(f"检测完成: {unique_filename}, 检测到 {detection_result.detection_count} 个对象")
+        
+        # 保存检测记录到数据库
+        db = next(get_db())
+        try:
+            record = DetectionRecord(
+                filename=unique_filename,
+                original_name=file.filename,
+                vehicle_type=vehicle_type,
+                detection_count=detection_result.detection_count,
+                confidence_score=0.0,  # 可以在YOLO检测中获取
+                report_content=report
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            log.info(f"检测记录已保存，ID: {record.id}")
+        except Exception as e:
+            db.rollback()
+            log.error(f"保存检测记录失败: {str(e)}")
+        finally:
+            db.close()
         
         return DetectionResult(
             code=0,
@@ -104,3 +126,88 @@ async def patrol_inspection(
         msg="巡检功能开发中",
         data={"status": "pending", "file_count": len(files)}
     )
+
+@router.get("/history")
+async def get_history(
+    page: int = 1,
+    page_size: int = 10,
+    db=Depends(get_db)
+):
+    """
+    获取检测历史记录
+    :param page: 页码（从1开始）
+    :param page_size: 每页数量
+    :return: 历史记录列表
+    """
+    try:
+        # 计算总数
+        total = db.query(DetectionRecord).count()
+        
+        # 分页查询，按时间倒序
+        records = db.query(DetectionRecord).order_by(
+            DetectionRecord.created_at.desc()
+        ).offset((page - 1) * page_size).limit(page_size).all()
+        
+        # 转换为字典列表
+        records_list = []
+        for record in records:
+            records_list.append({
+                "id": record.id,
+                "filename": record.filename,
+                "original_name": record.original_name,
+                "vehicle_type": record.vehicle_type,
+                "detection_count": record.detection_count,
+                "confidence_score": record.confidence_score,
+                "report": record.report_content,
+                "created_at": record.created_at.isoformat()
+            })
+        
+        return {
+            "code": 0,
+            "msg": "查询成功",
+            "data": {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "records": records_list
+            }
+        }
+    except Exception as e:
+        log.error(f"查询历史记录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
+
+@router.delete("/history/{record_id}")
+async def delete_history_record(
+    record_id: int,
+    db=Depends(get_db)
+):
+    """
+    删除检测记录
+    :param record_id: 记录ID
+    :return: 删除结果
+    """
+    try:
+        record = db.query(DetectionRecord).filter(DetectionRecord.id == record_id).first()
+        if not record:
+            raise HTTPException(status_code=404, detail="记录不存在")
+        
+        # 删除记录
+        db.delete(record)
+        db.commit()
+        
+        # 删除对应的图片文件
+        upload_path = settings.UPLOAD_DIR / record.filename
+        if upload_path.exists():
+            upload_path.unlink()
+        
+        return {
+            "code": 0,
+            "msg": "删除成功",
+            "data": None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        log.error(f"删除记录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
