@@ -1,0 +1,16 @@
+# Docker构建和运行时忽略的文件
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.env
+venv
+*.md
+docs
+tests
+.pytest_cache
+.mypy_cache
+build
+dist
+*.egg-info

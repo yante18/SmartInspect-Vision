@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史记录 - 智检慧眼</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th,
+        .history-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .history-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .history-table tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>📋 检测历史记录</h1>
+            <p>查看您的所有车辆检测记录</p>
+        </header>
+
+        <!-- 导航 -->
+        <nav class="nav">
+            <a href="/">车辆检测</a>
+            <a href="/history.html" class="active">历史记录</a>
+            <a href="/api/docs" target="_blank">API文档</a>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="content">
+            <div id="historyContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <h3>暂无检测记录</h3>
+                    <p>完成首次检测后，记录将显示在这里</p>
+                    <a href="/" class="btn btn-primary" style="margin-top: 20px;">去检测</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // TODO: 实现历史记录查询功能
+        // 需要后端提供 /api/v1/history 接口
+        console.log('历史记录页面 - 功能开发中');
+    </script>
+</body>
+</html>

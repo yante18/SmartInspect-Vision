@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智检慧眼 - 车辆智能检测系统</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>🚗 智检慧眼</h1>
+            <p>AI驱动的车辆智能检测系统 | 车主自检 · 快速定损 · 社区巡检</p>
+        </header>
+
+        <!-- 导航 -->
+        <nav class="nav">
+            <a href="/" class="active">车辆检测</a>
+            <a href="/history.html">历史记录</a>
+            <a href="/docs" target="_blank">API文档</a>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="content">
+            <!-- 上传区域 -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">点击或拖拽上传车辆图片</div>
+                    <div class="upload-hint">支持 JPG、PNG、GIF 格式，最大 10MB</div>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+            </section>
+
+            <!-- 表单选项 -->
+            <section class="form-section">
+                <div class="form-group">
+                    <label for="vehicleType">车辆类型</label>
+                    <select id="vehicleType">
+                        <option value="sedan">轿车</option>
+                        <option value="suv">SUV</option>
+                        <option value="truck">卡车</option>
+                        <option value="van">面包车</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="submitBtn" class="btn btn-primary">开始检测</button>
+                </div>
+            </section>
+
+            <!-- 加载动画 -->
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p style="color: #667eea; font-weight: 600;">AI正在分析中，请稍候...</p>
+            </div>
+
+            <!-- 结果展示 -->
+            <section class="result-section" id="resultSection">
+                <!-- 动态填充检测结果 -->
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
