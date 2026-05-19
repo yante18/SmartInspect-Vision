@@ -86,6 +86,19 @@ async def root():
             content={"code": -1, "msg": "页面不存在", "data": None}
         )
 
+# 历史记录页面
+@app.get("/history.html", response_class=HTMLResponse)
+async def history():
+    """返回历史记录页面"""
+    try:
+        with open("static/history.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"code": -1, "msg": "页面不存在", "data": None}
+        )
+
 # 健康检查接口
 @app.get("/health")
 async def health_check():
