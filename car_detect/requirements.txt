@@ -8,6 +8,9 @@ sqlalchemy>=2.0.23
 python-dotenv>=1.0.0
 loguru>=0.7.2
 pillow>=10.0.0
-# AI推理预留（按需安装）
-# ultralytics>=8.0.0
-# dashscope>=1.10.0  # 阿里云通义千问SDK
+requests>=2.31.0  # 远程调用 HTTP 客户端
+# AI推理依赖
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+# dashscope>=1.10.0  # 阿里云通义千问SDK（按需安装）

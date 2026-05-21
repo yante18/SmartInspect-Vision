@@ -99,6 +99,19 @@ async def history():
             content={"code": -1, "msg": "页面不存在", "data": None}
         )
 
+# 3D模型查看页面
+@app.get("/3d-viewer.html", response_class=HTMLResponse)
+async def viewer_3d():
+    """返回3D模型查看页面"""
+    try:
+        with open("static/3d-viewer.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"code": -1, "msg": "页面不存在", "data": None}
+        )
+
 # 健康检查接口
 @app.get("/health")
 async def health_check():

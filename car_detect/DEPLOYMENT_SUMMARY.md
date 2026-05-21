@@ -54,18 +54,22 @@
 │               Ubuntu服务器                           │
 │                                                     │
 │  /opt/car-detect/                                   │
-│  ├── Dockerfile              ← 镜像构建             │
+│  ├── Dockerfile              ← 仅安装依赖           │
 │  ├── docker-compose.yml      ← 容器编排             │
 │  ├── .env                    ← 环境配置             │
+│  ├── main.py                 ← 代码(卷挂载)         │
+│  ├── models/                 ← 模块(卷挂载)         │
 │  ├── static/upload/          ← 上传文件(持久化)     │
 │  ├── data/                   ← 数据库(持久化)       │
 │  └── logs/                   ← 日志(持久化)         │
 │                                                     │
 │  🐳 Docker Compose 启动                             │
 │  ├── car-detect-app (FastAPI应用)                  │
+│  ├── 代码卷挂载: .:/app                            │
 │  └── 端口映射: 8000:8000                           │
 │                                                     │
 │  🌐 访问: http://SERVER_IP:8000                     │
+│  ⚡ 代码更新: docker compose restart                │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -171,12 +175,20 @@ docker compose restart
 
 ### 更新代码
 
+**卷挂载方式的优势：**
+- ⚡ 无需重新构建镜像
+- ⚡ 代码修改立即生效
+- ⚡ 部署时间从几分钟缩短到几秒
+
 ```bash
 # 方法1：使用管理脚本
 ./docker-manage.sh
 # 选择选项 6（更新部署）
 
-# 方法2：手动更新
+# 方法2：手动更新（推荐）
+docker compose restart
+
+# 方法3：首次部署或依赖变更时
 docker compose up -d --build
 ```
 
@@ -251,13 +263,15 @@ sudo firewall-cmd --reload
 ## 🔍 故障排查速查表
 
 | 问题 | 可能原因 | 解决方案 |
-|------|---------|---------|
+|------|---------|----------|
 | 容器无法启动 | 端口被占用 | `sudo lsof -i :8000` 检查并释放端口 |
 | 无法访问 | 防火墙阻止 | `sudo ufw allow 8000/tcp` |
 | 上传失败 | 权限问题 | `chmod -R 755 static/upload` |
 | 数据库错误 | 文件损坏 | 删除 `data/sensor.db` 重启 |
 | 内存不足 | 资源限制 | 调整 `docker-compose.yml` 中的内存限制 |
 | 构建失败 | 网络问题 | 更换pip镜像源或使用VPN |
+| 代码修改未生效 | 容器未重启 | `docker compose restart` 重启容器 |
+| 卷挂载失败 | 路径错误 | 检查 docker-compose.yml 中的卷路径配置 |
 
 ---
 

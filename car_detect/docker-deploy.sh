@@ -176,9 +176,15 @@ echo "[4/6] 停止旧容器..."
 docker compose down 2>/dev/null || true
 echo "[✓] 旧容器已停止"
 
-# 构建并启动新容器
+# 首次部署需要构建镜像，后续更新只需重启
 echo "[5/6] 构建并启动容器..."
-docker compose up -d --build
+if [ ! "$(docker images -q car-detect-app 2>/dev/null)" ]; then
+    echo "[信息] 首次部署，构建镜像..."
+    docker compose build
+else
+    echo "[信息] 镜像已存在，跳过构建（代码通过卷挂载）"
+fi
+docker compose up -d
 echo "[✓] 容器启动成功"
 
 # 等待服务就绪
@@ -202,7 +208,7 @@ if docker compose ps | grep -q "Up"; then
     echo "  查看日志: docker compose logs -f"
     echo "  重启服务: docker compose restart"
     echo "  停止服务: docker compose down"
-    echo "  更新部署: ./deploy.sh (重新运行此脚本)"
+    echo "  更新代码: ./deploy.sh (重新运行此脚本，代码自动生效)"
 else
     echo ""
     echo "[错误] 容器启动失败，请检查日志:"

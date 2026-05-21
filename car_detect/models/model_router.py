@@ -8,7 +8,15 @@ from pathlib import Path
 from config import settings
 from utils.logger import log
 from utils.validator import validator
-from models.yolo_detect import run_yolo_detection
+
+# 根据配置选择本地或远程 YOLO
+if settings.USE_REMOTE_YOLO:
+    from models.remote_yolo_client import get_remote_client as get_detector
+    log.info("[ModelRouter] 使用远程 YOLO 服务")
+else:
+    from models.yolo_engine import get_detector
+    log.info("[ModelRouter] 使用本地 YOLO 模型")
+
 from models.qwen_report import generate_inspection_report
 from models.database import get_db, DetectionRecord
 from sensor.sensor_api import DetectionResult
@@ -40,28 +48,36 @@ async def detect_vehicle(
         log.info(f"开始检测: {unique_filename}")
         
         # 执行YOLO检测
-        detection_result = run_yolo_detection(str(upload_path))
+        detector = get_detector()
+        yolo_results = detector.detect(str(upload_path))
+        
+        # 绘制检测结果（可选）
+        # result_img_path = detector.detect_and_draw(str(upload_path))
         
         # 生成检测报告
         report = generate_inspection_report(
             detection_data={
                 "upload_time": datetime.now().isoformat(),
-                "detection_count": detection_result.detection_count
+                "detection_count": len(yolo_results),
+                "detections": yolo_results
             },
             vehicle_type=vehicle_type
         )
         
-        log.info(f"检测完成: {unique_filename}, 检测到 {detection_result.detection_count} 个对象")
+        log.info(f"检测完成: {unique_filename}, 检测到 {len(yolo_results)} 个对象")
         
         # 保存检测记录到数据库
         db = next(get_db())
         try:
+            # 计算平均置信度
+            avg_conf = sum(d['confidence'] for d in yolo_results) / len(yolo_results) if yolo_results else 0.0
+            
             record = DetectionRecord(
                 filename=unique_filename,
                 original_name=file.filename,
                 vehicle_type=vehicle_type,
-                detection_count=detection_result.detection_count,
-                confidence_score=0.0,  # 可以在YOLO检测中获取
+                detection_count=len(yolo_results),
+                confidence_score=avg_conf,
                 report_content=report
             )
             db.add(record)
@@ -79,9 +95,13 @@ async def detect_vehicle(
             msg="检测成功",
             data={
                 "filename": unique_filename,
-                "detections": detection_result.dict(),
+                "detections": {
+                    "detection_count": len(yolo_results),
+                    "results": yolo_results
+                },
                 "report": report,
-                "processing_time": datetime.now().isoformat()
+                "processing_time": datetime.now().isoformat(),
+                "image_url": f"/static/upload/{unique_filename}"
             }
         )
     

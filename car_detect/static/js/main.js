@@ -145,24 +145,121 @@ function displayResult(data) {
     // 构建结果HTML
     const html = `
         <div class="result-title">🎯 检测结果</div>
-        <div class="report-content">
-            ${formatReport(detectionData.report)}
+        
+        <!-- 图片预览与Canvas叠加层 -->
+        <div class="image-preview-container" style="position: relative; margin: 20px 0;">
+            <img id="resultImage" src="${detectionData.image_url}" alt="检测结果" style="max-width: 100%; border-radius: 10px;">
+            <canvas id="damageCanvas" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
         </div>
-        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-            <strong>检测详情：</strong>
-            <ul style="margin-top: 10px; margin-left: 20px;">
-                <li>文件名: ${detectionData.filename}</li>
-                <li>检测对象数: ${detectionData.detections.detection_count}</li>
-                <li>处理时间: ${new Date(detectionData.processing_time).toLocaleString()}</li>
-            </ul>
+        
+        <!-- 检测详情卡片 -->
+        <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #667eea; margin-bottom: 15px;">📊 检测统计</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #666;">文件名</div>
+                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${detectionData.filename}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #666;">检测对象数</div>
+                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${detectionData.detections.detection_count}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #666;">处理时间</div>
+                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${new Date(detectionData.processing_time).toLocaleString()}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 检测报告 -->
+        <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #667eea; margin-bottom: 15px;">📝 AI分析报告</h3>
+            <div class="report-content">
+                ${formatReport(detectionData.report)}
+            </div>
+        </div>
+        
+        <!-- 3D模型跳转按钮 -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="window.location.href='/3d-viewer.html'" class="btn btn-secondary" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                🎨 查看3D模型
+            </button>
         </div>
     `;
     
     resultSection.innerHTML = html;
     resultSection.classList.add('show');
     
+    // 绘制检测结果到Canvas
+    setTimeout(() => {
+        drawDamageOverlay(detectionData.detections.results, 'damageCanvas', detectionData.image_url);
+    }, 100);
+    
     // 滚动到结果区域
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Canvas 可视化绘制检测结果
+async function drawDamageOverlay(damages, canvasId, imageUrl) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !damages || damages.length === 0) return;
+    
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+        // 设置Canvas尺寸与图片一致
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // 遍历所有检测结果并绘制
+        damages.forEach((dmg, index) => {
+            const [x1, y1, x2, y2] = dmg.bbox;
+            const width = x2 - x1;
+            const height = y2 - y1;
+            
+            // 绘制边界框
+            ctx.strokeStyle = '#ff4d4f';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x1, y1, width, height);
+            
+            // 绘制半透明填充
+            ctx.fillStyle = 'rgba(255, 77, 79, 0.15)';
+            ctx.fillRect(x1, y1, width, height);
+            
+            // 绘制标签背景
+            const label = `${dmg.type} ${Math.round(dmg.confidence * 100)}%`;
+            ctx.font = 'bold 14px Arial';
+            const textWidth = ctx.measureText(label).width;
+            
+            ctx.fillStyle = '#ff4d4f';
+            ctx.fillRect(x1, y1 - 25, textWidth + 10, 25);
+            
+            // 绘制标签文字
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, x1 + 5, y1 - 7);
+            
+            // 绘制位置信息
+            const locationLabel = dmg.location || '';
+            if (locationLabel) {
+                ctx.font = '12px Arial';
+                const locWidth = ctx.measureText(locationLabel).width;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(x1, y2, locWidth + 8, 18);
+                ctx.fillStyle = '#fff';
+                ctx.fillText(locationLabel, x1 + 4, y2 + 13);
+            }
+        });
+        
+        console.log(`[Canvas] 已绘制 ${damages.length} 个检测结果`);
+    };
+    
+    img.onerror = (err) => {
+        console.error('[Canvas] 图片加载失败:', err);
+    };
+    
+    img.src = imageUrl;
 }
 
 function formatReport(report) {

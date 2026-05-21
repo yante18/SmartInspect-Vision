@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # 日志配置
     LOG_LEVEL: str = "INFO"
     
+    # 远程 YOLO 服务配置（分布式架构）
+    REMOTE_YOLO_URL: str = "http://localhost:9000"  # 本地服务地址
+    YOLO_API_TOKEN: str = "your-secret-token-here"  # API 认证 Token
+    USE_REMOTE_YOLO: bool = False  # 是否使用远程服务（False=本地推理，True=远程调用）
+    
     class Config:
         env_file = ".env"
         case_sensitive = False

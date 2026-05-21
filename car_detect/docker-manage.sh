@@ -80,15 +80,12 @@ update() {
     echo -e "${YELLOW}[操作] 更新部署...${NC}"
     cd $DEPLOY_PATH
     
-    echo "[1/3] 拉取最新代码..."
+    echo "[1/2] 拉取最新代码..."
     # 如果有git，可以取消注释
     # git pull
     
-    echo "[2/3] 重新构建镜像..."
-    docker compose build --no-cache
-    
-    echo "[3/3] 重启容器..."
-    docker compose up -d
+    echo "[2/2] 重启容器（代码通过卷挂载，自动生效）..."
+    docker compose restart
     
     echo -e "${GREEN}[成功] 更新完成${NC}"
 }

@@ -21,9 +21,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 复制项目文件
-COPY . .
-
 # 创建必要的目录
 RUN mkdir -p static/upload data logs && \
     chmod -R 755 static/upload data logs

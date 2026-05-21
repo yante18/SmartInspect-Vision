@@ -1,5 +1,9 @@
 # 🐳 Docker部署 - 快速参考卡片
 
+> **卷挂载方式**：代码更新无需重新构建，只需重启容器 ⚡
+
+---
+
 ## ⚡ 30秒快速部署
 
 ```bash
@@ -41,7 +45,7 @@ docker compose ps
 # 查看日志
 docker compose logs -f
 
-# 重启服务
+# 重启服务（代码更新后执行此命令）
 docker compose restart
 
 # 停止服务
@@ -50,7 +54,7 @@ docker compose down
 # 启动服务
 docker compose up -d
 
-# 更新部署
+# 首次部署或依赖变更时重新构建
 docker compose up -d --build
 
 # 进入容器
@@ -78,11 +82,12 @@ docker exec -it car-detect-app bash
 
 ## 📁 数据持久化
 
-| 类型 | 宿主机路径 | 容器路径 |
-|------|-----------|---------|
-| 上传文件 | `./static/upload` | `/app/static/upload` |
-| 数据库 | `./data` | `/app/data` |
-| 日志 | `./logs` | `/app/logs` |
+| 类型 | 宿主机路径 | 容器路径 | 说明 |
+|------|-----------|---------|------|
+| **项目代码** | `.` (当前目录) | `/app` | 卷挂载，修改后重启生效 |
+| 上传文件 | `./static/upload` | `/app/static/upload` | 持久化存储 |
+| 数据库 | `./data` | `/app/data` | 持久化存储 |
+| 日志 | `./logs` | `/app/logs` | 持久化存储 |
 
 ---
 
@@ -120,6 +125,8 @@ docker system prune -f
 
 ## 🔄 更新流程
 
+### 方式1：代码更新（最常用）
+
 ```bash
 # 1. 上传新代码
 rsync -avz . root@server:/opt/car-detect/
@@ -128,12 +135,29 @@ rsync -avz . root@server:/opt/car-detect/
 ssh root@server
 cd /opt/car-detect
 
-# 3. 重新构建
-docker compose up -d --build
+# 3. 重启容器（代码自动生效）
+docker compose restart
 
 # 4. 验证
 docker compose logs -f
 ```
+
+**耗时：** 5-10 秒 ⚡
+
+### 方式2：依赖更新
+
+```bash
+# 1. 修改 requirements.txt
+# 2. 上传代码
+rsync -avz . root@server:/opt/car-detect/
+
+# 3. SSH登录并重新构建
+ssh root@server
+cd /opt/car-detect
+docker compose up -d --build
+```
+
+**耗时：** 2-5 分钟
 
 ---
 
@@ -146,6 +170,41 @@ tar -czf backup_$(date +%Y%m%d).tar.gz data/ static/upload/ .env
 # 恢复
 tar -xzf backup_YYYYMMDD.tar.gz
 docker compose restart
+```
+
+---
+
+## 📦 卷挂载说明
+
+### 什么是卷挂载？
+
+项目代码通过 Docker 卷挂载到容器中，而不是复制到镜像内部。
+
+**优势：**
+- ⚡ 代码更新只需重启容器（5-10秒）
+- 💾 无需存储多个镜像版本
+- 🔧 便于调试，代码修改立即生效
+
+### 卷配置
+
+```yaml
+# docker-compose.yml
+volumes:
+  - .:/app                    # 代码卷挂载
+  - ./static/upload:/app/static/upload  # 数据持久化
+  - ./data:/app/data                      # 数据持久化
+  - ./logs:/app/logs                      # 数据持久化
+```
+
+### 验证卷挂载
+
+```bash
+# 查看卷挂载状态
+docker inspect car-detect-app --format='{{json .Mounts}}' | python -m json.tool
+
+# 测试代码同步
+echo "test" > /opt/car-detect/test.txt
+docker exec car-detect-app cat /app/test.txt
 ```
 
 ---

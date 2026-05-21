@@ -17,6 +17,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TZ=Asia/Shanghai
     volumes:
+      # 挂载项目代码（开发模式，代码更新无需重新构建）
+      - .:/app
       # 持久化上传文件
       - ./static/upload:/app/static/upload
       # 持久化数据库
