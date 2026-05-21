@@ -1,0 +1,39 @@
+# ============================================================
+# YOLOv8 车损检测 - 快速参考卡片
+# ============================================================
+
+# 1️⃣ 激活虚拟环境
+.\venv\Scripts\activate
+
+# 2️⃣ 创建数据集目录
+python prepare_dataset.py
+
+# 3️⃣ 导入数据（手动操作）
+# 将图片放入：datasets/car-damage-dataset/images/train/
+# 将标注放入：datasets/car-damage-dataset/labels/train/
+
+# 4️⃣ 验证数据集
+python prepare_dataset.py
+
+# 5️⃣ 开始训练
+python train_yolo.py
+
+# 6️⃣ 使用训练好的模型
+# 修改 models/yolo_engine.py 第 14 行：
+# self.model_name = "car_damage_best.pt"
+
+# 7️⃣ 重启服务
+python main.py
+
+# ============================================================
+# 标注格式说明
+# ============================================================
+# 格式：<class_id> <x_center> <y_center> <width> <height>
+# 示例：0 0.5 0.5 0.1 0.05
+#
+# 类别：
+#   0 = scratch (划痕)
+#   1 = dent (凹陷)
+#   2 = collision (碰撞)
+#   3 = broken (破损)
+# ============================================================

@@ -31,3 +31,6 @@ Thumbs.db
 
 # 环境配置
 .env
+
+# 嵌套Git仓库
+Car-damage-detection225/

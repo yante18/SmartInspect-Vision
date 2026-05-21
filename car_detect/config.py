@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     REMOTE_YOLO_URL: str = "http://localhost:9000"  # 本地服务地址
     YOLO_API_TOKEN: str = "your-secret-token-here"  # API 认证 Token
     USE_REMOTE_YOLO: bool = False  # 是否使用远程服务（False=本地推理，True=远程调用）
+    REMOTE_YOLO_TIMEOUT: int = 30  # 请求超时时间（秒）
     
     class Config:
         env_file = ".env"
