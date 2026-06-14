@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智检慧眼 - 3D 损伤可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        #gradient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container canvas {
+            display: block;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px 50px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 14px 24px;
+            border-radius: 10px;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .tip {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 14px 32px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #e0e0e0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .damage-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 24px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 100;
+            max-width: 350px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .damage-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .damage-panel::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+
+        .damage-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .damage-panel h3 {
+            color: #ff6b6b;
+            margin-bottom: 14px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .damage-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .damage-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .damage-item .type {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .damage-item .location {
+            font-size: 13px;
+            color: #b0b0b0;
+            margin-bottom: 6px;
+        }
+
+        .damage-item .confidence {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .confidence-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .confidence-text {
+            font-size: 12px;
+            color: #888;
+            min-width: 40px;
+        }
+
+        .color-legend {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+
+        .legend-title {
+            font-size: 13px;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #888;
+            padding: 30px 0;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gradient-bg"></canvas>
+    <div id="canvas-container">
+        <div id="loading">
+            <div class="loading-spinner"></div>
+            加载中...
+        </div>
+        
+        <div class="nav">
+            <a href="/">← 返回检测页面</a>
+            <a href="/3d-viewer.html">🚗 纯3D查看</a>
+        </div>
+
+        <div class="damage-panel" id="damagePanel">
+            <h3>🔍 损伤检测结果</h3>
+            <button class="refresh-btn" onclick="refreshData()">
+                🔄 刷新数据
+            </button>
+            <div id="damageList">
+                <div class="no-data">
+                    <div class="no-data-icon">📷</div>
+                    <div>暂无检测数据</div>
+                    <div style="font-size: 12px; margin-top: 5px;">请先进行车辆检测</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-legend">
+            <div class="legend-title">损伤严重程度</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(90deg, #ff0000, #cc0000);"></div>
+                <span>⚠️ 严重损伤</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(90deg, #ff9900, #cc6600);"></div>
+                <span>中等损伤</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(90deg, #ffcc00, #cc9900);"></div>
+                <span>轻微损伤</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(90deg, #66ff66, #33cc33);"></div>
+                <span>安全隐患</span>
+            </div>
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div class="legend-title" style="margin-bottom: 6px;">置信度指示</div>
+                <div style="font-size: 11px; color: #888;">颜色越深 = 置信度越高</div>
+            </div>
+        </div>
+
+        <div class="tip">
+            点击损伤标记查看详情 | 鼠标操作旋转/缩放/平移
+        </div>
+    </div>
+
+    <!-- 引入 Three.js (使用 ES Modules) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // 引入 Three.js 模块
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+        // API配置
+        const API_BASE = '/api/v1';
+
+        // 场景、相机、渲染器
+        let scene, camera, renderer, labelRenderer, controls;
+        let carGroup;
+        let damageMarkers = [];
+        let damageData = null;
+
+        // 损伤类型颜色映射（34种损伤）
+    const DAMAGE_TYPE_COLORS = {
+        '车漆刮擦破损': { base: 0xffcc00, dark: 0xcc9900, severity: '轻微' },
+        '车门凹陷': { base: 0xff9900, dark: 0xcc6600, severity: '中等' },
+        '车门大面积凹陷': { base: 0xff6600, dark: 0xcc3300, severity: '严重' },
+        '翼子板凹陷': { base: 0xff9933, dark: 0xcc6600, severity: '中等' },
+        '车门撕裂': { base: 0xff3300, dark: 0xcc0000, severity: '严重' },
+        '翼子板撕裂': { base: 0xff4400, dark: 0xcc2200, severity: '严重' },
+        '翼子板撕裂、凹陷': { base: 0xff5500, dark: 0xcc3300, severity: '严重' },
+        '车门与翼子板的接缝处错位': { base: 0xffaa00, dark: 0xcc7700, severity: '中等' },
+        '车门与翼子板的接线处错位': { base: 0xffaa00, dark: 0xcc7700, severity: '中等' },
+        '前保险杠脱落': { base: 0xff2200, dark: 0xcc0000, severity: '严重' },
+        '前保险杠撕裂': { base: 0xff4400, dark: 0xcc2200, severity: '严重' },
+        '后保险杠脱落': { base: 0xff2200, dark: 0xcc0000, severity: '严重' },
+        '后保险杠损坏': { base: 0xff5500, dark: 0xcc3300, severity: '中等' },
+        '后保险杠撕裂破损': { base: 0xff3300, dark: 0xcc1100, severity: '严重' },
+        '后翼子板撕裂': { base: 0xff4400, dark: 0xcc2200, severity: '严重' },
+        '后翼子板脱落': { base: 0xff2200, dark: 0xcc0000, severity: '严重' },
+        '中网损坏': { base: 0xff7700, dark: 0xcc4400, severity: '中等' },
+        '车灯破损': { base: 0xff6633, dark: 0xcc3300, severity: '中等' },
+        '车灯支架损坏': { base: 0xff8844, dark: 0xcc5511, severity: '中等' },
+        '尾灯灯罩破损': { base: 0xff6633, dark: 0xcc3300, severity: '中等' },
+        '前挡风玻璃破损': { base: 0x99ccff, dark: 0x6699cc, severity: '严重' },
+        '引擎盖翘起变形': { base: 0xff8800, dark: 0xcc5500, severity: '严重' },
+        '后备箱盖损坏': { base: 0xff9966, dark: 0xcc6633, severity: '中等' },
+        '后备箱盖溃缩变形': { base: 0xff6633, dark: 0xcc3300, severity: '严重' },
+        '车尾严重溃缩变形': { base: 0xff0000, dark: 0xcc0000, severity: '严重' },
+        '车顶凹陷': { base: 0xccccff, dark: 0x9999cc, severity: '中等' },
+        '线束外露': { base: 0x66ff66, dark: 0x33cc33, severity: '安全隐患' },
+        '排气管外露': { base: 0x888888, dark: 0x555555, severity: '轻微' },
+        '排气系统脱落': { base: 0x666666, dark: 0x333333, severity: '严重' },
+        '水箱框架外露': { base: 0x99ccff, dark: 0x6699cc, severity: '中等' },
+        '水箱框架、前纵梁严重溃缩变形': { base: 0xff0000, dark: 0xcc0000, severity: '严重' },
+        '轮毂、悬挂部件损坏': { base: 0x996633, dark: 0x663300, severity: '严重' },
+        '轮胎脱落': { base: 0x333333, dark: 0x111111, severity: '严重' }
+    };
+
+    // 位置颜色（备用）
+    const LOCATION_COLORS = {
+        '前部': { base: 0xff4444, dark: 0xcc0000 },
+        '后部': { base: 0x4488ff, dark: 0x0044cc },
+        '左侧': { base: 0xff8800, dark: 0xcc5500 },
+        '右侧': { base: 0xaa44ff, dark: 0x7700cc },
+        '中部': { base: 0x44ff88, dark: 0x00cc44 },
+        '未知': { base: 0x888888, dark: 0x444444 }
+    };
+
+        // 获取基于损伤类型和置信度的颜色
+        function getColorByConfidence(damageType, location, confidence) {
+            let colorSet;
+            // 优先使用损伤类型颜色
+            if (damageType && DAMAGE_TYPE_COLORS[damageType]) {
+                colorSet = DAMAGE_TYPE_COLORS[damageType];
+            } else {
+                // 回退到位置颜色
+                colorSet = LOCATION_COLORS[location] || LOCATION_COLORS['未知'];
+            }
+            
+            const baseColor = new THREE.Color(colorSet.base);
+            const darkColor = new THREE.Color(colorSet.dark);
+            
+            // 置信度高=深色，低=浅色
+            const t = 1 - confidence; // 反转：置信度高时t小，取深色
+            return baseColor.clone().lerp(darkColor, t * 0.7);
+        }
+
+        // 绘制渐变背景
+        function drawGradientBackground() {
+            const canvas = document.getElementById('gradient-bg');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置画布大小
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // 创建渐变 - 专业汽车展示厅风格
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#2d3436');   // 顶部深色
+            gradient.addColorStop(0.3, '#636e72'); // 中上部灰色
+            gradient.addColorStop(0.6, '#dfe6e9'); // 中下部浅灰
+            gradient.addColorStop(1, '#ffffff');   // 底部白色
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 初始化
+        async function init() {
+            // 绘制背景
+            drawGradientBackground();
+            window.addEventListener('resize', drawGradientBackground);
+            
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = null;  // 透明背景，让Canvas渐变透出来
+            scene.fog = new THREE.Fog(0x636e72, 10, 50);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(
+                50,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(6, 3, 6);
+
+            // 创建渲染器 - 开启透明背景
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 创建 CSS2D 渲染器（用于标签）
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.getElementById('canvas-container').appendChild(labelRenderer.domElement);
+
+            // 添加轨道控制器
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+            controls.maxPolarAngle = Math.PI / 2;
+
+            // 添加灯光
+            setupLights();
+
+            // 创建地面
+            createGround();
+
+            // 加载真实的 3D 汽车模型
+            await loadCarModel();
+
+            // 从API加载检测数据
+            await loadDetectionData();
+
+            // 隐藏加载提示
+            document.getElementById('loading').style.display = 'none';
+
+            // 开始渲染循环
+            animate();
+        }
+        
+        // 加载真实的 GLTF 汽车模型
+        function loadCarModel() {
+            return new Promise((resolve, reject) => {
+                const loader = new GLTFLoader();
+                
+                // 模型路径
+                const modelPath = "/static/2024_xiaomi_su7_max/scene.gltf";
+                
+                console.log('开始加载 3D 模型:', modelPath);
+                
+                let loadTimeout = setTimeout(() => {
+                    console.warn('模型加载超时，使用占位模型');
+                    createPlaceholderCar();
+                    resolve();
+                }, 15000); // 15秒超时
+
+                loader.load(
+                    modelPath,
+                    (gltf) => {
+                        clearTimeout(loadTimeout);
+                        console.log('模型加载成功!', gltf);
+                        
+                        carGroup = new THREE.Group();
+                        
+                        // 添加模型到组
+                        carGroup.add(gltf.scene);
+                        
+                        // 设置模型属性
+                        gltf.scene.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                
+                                // 优化材质
+                                if (child.material) {
+                                    child.material.envMapIntensity = 1.0;
+                                    // 确保材质双面可见
+                                    child.material.side = THREE.DoubleSide;
+                                }
+                            }
+                        });
+
+                        // 计算模型边界
+                        const box = new THREE.Box3().setFromObject(gltf.scene);
+                        const size = box.getSize(new THREE.Vector3());
+                        const center = box.getCenter(new THREE.Vector3());
+                        
+                        console.log('原始模型尺寸:', size);
+                        console.log('原始模型中心:', center);
+
+                        // 模型原始缩放只有 0.01，需要放大 100 倍！
+                        const scale = 100.0;
+                        carGroup.scale.set(scale, scale, scale);
+                        
+                        // 将模型居中并抬高
+                        carGroup.position.x = -center.x * scale;
+                        carGroup.position.y = -center.y * scale + 1.0; // 抬高一点让轮子接触地面
+                        carGroup.position.z = -center.z * scale;
+                        
+                        // 旋转模型让车头朝向正确方向（绕Y轴旋转90度）
+                        carGroup.rotation.y = Math.PI / 2;
+                        
+                        scene.add(carGroup);
+                        
+                        console.log('模型已添加到场景，缩放:', scale);
+                        console.log('位置:', carGroup.position);
+                        console.log('旋转:', carGroup.rotation);
+                        
+                        // 隐藏加载提示
+                        document.getElementById('loading').style.display = 'none';
+                        resolve();
+                    },
+                    (progress) => {
+                        // 加载进度
+                        if (progress.lengthComputable) {
+                            const percent = (progress.loaded / progress.total * 100).toFixed(0);
+                            document.getElementById('loading').innerHTML = `
+                                <div class="loading-spinner"></div>
+                                加载模型中... ${percent}%
+                            `;
+                            console.log('加载进度:', percent + '%');
+                        } else {
+                            // 如果无法计算进度，显示加载中
+                            document.getElementById('loading').innerHTML = `
+                                <div class="loading-spinner"></div>
+                                加载模型中...
+                            `;
+                        }
+                    },
+                    (error) => {
+                        clearTimeout(loadTimeout);
+                        console.error('模型加载失败:', error);
+                        // 加载失败时创建简单占位模型
+                        console.log('使用占位模型');
+                        createPlaceholderCar();
+                        resolve();
+                    }
+                );
+            });
+        }
+        
+        // 创建占位汽车模型（当GLTF加载失败时）
+        function createPlaceholderCar() {
+            carGroup = new THREE.Group();
+            
+            // 创建简单的汽车形状
+            const bodyGeometry = new THREE.BoxGeometry(3, 1, 1.4);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0x3498db,
+                roughness: 0.2,
+                metalness: 0.9
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.7;
+            body.castShadow = true;
+            carGroup.add(body);
+
+            // 车顶
+            const roofGeometry = new THREE.BoxGeometry(1.8, 0.6, 1.2);
+            const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+            roof.position.y = 1.3;
+            roof.castShadow = true;
+            carGroup.add(roof);
+
+            scene.add(carGroup);
+            console.log('占位模型已创建');
+            
+            // 隐藏加载提示
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // 设置灯光
+        function setupLights() {
+            // 环境光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // 主光源（太阳）
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            mainLight.position.set(15, 20, 10);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 4096;
+            mainLight.shadow.mapSize.height = 4096;
+            mainLight.shadow.camera.near = 0.5;
+            mainLight.shadow.camera.far = 50;
+            mainLight.shadow.camera.left = -15;
+            mainLight.shadow.camera.right = 15;
+            mainLight.shadow.camera.top = 15;
+            mainLight.shadow.camera.bottom = -15;
+            mainLight.shadow.bias = -0.0001;
+            scene.add(mainLight);
+
+            // 环境光球
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcccccc, 0.3);
+            hemiLight.position.set(0, 10, 0);
+            scene.add(hemiLight);
+        }
+
+        // 创建地面
+        function createGround() {
+            // 地面网格 - 浅灰色
+            const gridHelper = new THREE.GridHelper(30, 60, 0xcccccc, 0xe0e0e0);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // 反光地面 - 灰白色
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0xf0f0f0,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.001;
+            ground.receiveShadow = true;
+            scene.add(ground);
+        }
+
+        // 创建损伤标记
+        function createDamageMarker(damage, index) {
+            const markerGroup = new THREE.Group();
+
+            // 获取位置坐标
+            const position = damage['3d_position'] || { x: 0, y: 1, z: 0 };
+            
+            // 直接使用后端返回的精确3D位置
+            const adjustedPos = {
+                x: position.x,
+                y: position.y,
+                z: position.z
+            };
+
+            // 获取颜色（基于损伤类型和置信度）
+            const color = getColorByConfidence(damage.type, damage.location, damage.confidence);
+
+            // 创建发光球体标记
+            const markerGeometry = new THREE.SphereGeometry(0.12, 32, 32);
+            const markerMaterial = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.9,
+                roughness: 0.2,
+                metalness: 0.5
+            });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            markerGroup.add(marker);
+
+            // 创建外圈光晕
+            const glowGeometry = new THREE.SphereGeometry(0.18, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.BackSide
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            markerGroup.add(glow);
+
+            // 创建脉冲动画环
+            const ringGeometry = new THREE.RingGeometry(0.15, 0.18, 32);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.name = 'pulseRing';
+            markerGroup.add(ring);
+
+            // 设置位置
+            markerGroup.position.set(adjustedPos.x, adjustedPos.y, adjustedPos.z);
+
+            // 添加CSS2D标签
+            const labelDiv = document.createElement('div');
+            labelDiv.style.cssText = `
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                border: 2px solid ${'#' + color.getHexString()};
+                white-space: nowrap;
+                pointer-events: auto;
+                cursor: pointer;
+                transition: all 0.3s;
+            `;
+            labelDiv.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 4px;">${damage.type}</div>
+                <div style="font-size: 10px; opacity: 0.8;">${damage.location}</div>
+                <div style="font-size: 11px; margin-top: 4px;">置信度: ${(damage.confidence * 100).toFixed(0)}%</div>
+            `;
+
+            labelDiv.onclick = () => {
+                highlightDamageItem(index);
+            };
+
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(0, 0.3, 0);
+            markerGroup.add(label);
+
+            // 存储动画数据
+            markerGroup.userData = {
+                index: index,
+                damage: damage,
+                color: color,
+                baseScale: 1,
+                pulsePhase: Math.random() * Math.PI * 2
+            };
+
+            return markerGroup;
+        }
+
+        // 高亮显示损伤列表项
+        function highlightDamageItem(index) {
+            const items = document.querySelectorAll('.damage-item');
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.style.background = 'rgba(255, 255, 255, 0.2)';
+                    item.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.3)';
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.style.background = 'rgba(255, 255, 255, 0.05)';
+                    item.style.boxShadow = 'none';
+                }
+            });
+
+            // 相机聚焦到该标记
+            if (damageMarkers[index]) {
+                const targetPos = damageMarkers[index].position.clone();
+                const cameraTarget = targetPos.clone().add(new THREE.Vector3(2, 1, 2));
+                
+                // 平滑移动相机
+                const startPos = camera.position.clone();
+                const startTarget = controls.target.clone();
+                const duration = 1000;
+                const startTime = Date.now();
+
+                function animateCamera() {
+                    const elapsed = Date.now() - startTime;
+                    const t = Math.min(elapsed / duration, 1);
+                    const easeT = 1 - Math.pow(1 - t, 3);
+
+                    camera.position.lerpVectors(startPos, cameraTarget, easeT);
+                    controls.target.lerpVectors(startTarget, targetPos, easeT);
+
+                    if (t < 1) {
+                        requestAnimationFrame(animateCamera);
+                    }
+                }
+
+                animateCamera();
+            }
+        }
+
+        // 更新损伤标记显示
+        function updateDamageMarkers(detections) {
+            // 清除旧的标记
+            damageMarkers.forEach(marker => {
+                scene.remove(marker);
+            });
+            damageMarkers = [];
+
+            // 创建新的标记
+            if (detections && detections.length > 0) {
+                detections.forEach((damage, index) => {
+                    const marker = createDamageMarker(damage, index);
+                    scene.add(marker);
+                    damageMarkers.push(marker);
+                });
+            }
+        }
+
+        // 加载检测数据
+    async function loadDetectionData() {
+        try {
+            const response = await fetch(`${API_BASE}/models/latest`);
+            const result = await response.json();
+
+            if (result.code === 0 && result.data) {
+                damageData = result.data;
+                const detections = result.data.detections || [];
+                
+                if (detections && detections.length > 0) {
+                    // 有真实检测数据
+                    console.log('加载到真实检测数据:', detections);
+                    updateDamagePanel(detections);
+                    updateDamageMarkers(detections);
+                } else {
+                    // 没有检测数据或数据为空
+                    console.log('暂无检测数据');
+                    updateDamagePanel([]);
+                }
+            } else {
+                console.log('暂无检测记录');
+                updateDamagePanel([]);
+            }
+        } catch (error) {
+            console.error('加载检测数据失败:', error);
+            updateDamagePanel([]);
+        }
+    }
+
+        // 更新损伤信息面板
+        function updateDamagePanel(detections) {
+            const damageList = document.getElementById('damageList');
+            
+            if (!detections || detections.length === 0) {
+                damageList.innerHTML = `
+                    <div class="no-data">
+                        <div class="no-data-icon">📷</div>
+                        <div>暂无检测数据</div>
+                        <div style="font-size: 12px; margin-top: 5px;">请先在首页上传车辆照片进行检测</div>
+                    </div>
+                `;
+                return;
+            }
+
+            damageList.innerHTML = detections.map((damage, index) => {
+                const color = getColorByConfidence(damage.type, damage.location, damage.confidence);
+                const colorHex = '#' + color.getHexString();
+                const confidencePercent = (damage.confidence * 100).toFixed(0);
+                
+                // 获取严重程度信息
+                let severity = '未知';
+                let severityColor = '#999';
+                if (DAMAGE_TYPE_COLORS[damage.type]) {
+                    severity = DAMAGE_TYPE_COLORS[damage.type].severity;
+                    if (severity === '严重') severityColor = '#ff4444';
+                    else if (severity === '中等') severityColor = '#ff9900';
+                    else if (severity === '轻微') severityColor = '#ffcc00';
+                    else if (severity === '安全隐患') severityColor = '#66ff66';
+                }
+
+                return `
+                    <div class="damage-item" style="border-left-color: ${colorHex};" onclick="highlightDamageItem(${index})">
+                        <div class="type">${damage.type} #${index + 1}</div>
+                        <div class="location">📍 ${damage.location}</div>
+                        <div style="font-size: 12px; margin-bottom: 6px;">
+                            <span style="color: ${severityColor}; font-weight: bold;">⚠️ ${severity}</span>
+                        </div>
+                        <div class="confidence">
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidencePercent}%; background: ${colorHex};"></div>
+                            </div>
+                            <span class="confidence-text">${confidencePercent}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.innerHTML = '<div class="loading-spinner"></div>刷新中...';
+            btn.disabled = true;
+
+            await loadDetectionData();
+
+            btn.innerHTML = '🔄 刷新数据';
+            btn.disabled = false;
+        }
+
+        // 动画循环
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.02;
+
+            // 轻微的汽车浮动动画
+            if (carGroup) {
+                carGroup.position.y = Math.sin(time * 0.5) * 0.02;
+            }
+
+            // 损伤标记动画
+            damageMarkers.forEach((marker, index) => {
+                const phase = marker.userData.pulsePhase;
+                const scale = 1 + Math.sin(time * 2 + phase) * 0.1;
+                marker.scale.setScalar(scale);
+
+                // 脉冲环动画
+                const ring = marker.getObjectByName('pulseRing');
+                if (ring) {
+                    const ringScale = 1 + (time * 0.5 + phase) % 1;
+                    ring.scale.setScalar(ringScale);
+                    ring.material.opacity = 0.6 * (1 - ((time * 0.5 + phase) % 1));
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

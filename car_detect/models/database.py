@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -20,6 +20,7 @@ class DetectionRecord(Base):
     detection_count = Column(Integer, default=0)
     confidence_score = Column(Float, default=0.0)
     report_content = Column(Text, nullable=True)
+    detections = Column(JSON, nullable=True)  # 新增：保存完整的检测结果
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

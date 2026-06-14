@@ -1,0 +1,8 @@
+# 重复的3D模型文件（static下已有）
+/2024_xiaomi_su7_max/
+
+# SSH密钥
+ssh.txt
+
+# 嵌套仓库（已重构到car_detect/）
+SmartInspect-Vision/

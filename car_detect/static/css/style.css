@@ -15,7 +15,7 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: white;
+    background: rgb(255, 254, 254);
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     overflow: hidden;
@@ -23,20 +23,42 @@ body {
 
 /* 头部 */
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    /* 半透明黑色 + 模糊效果，能透出下面的汽车背景 */
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    color: #fff; /* 文字改成白色，更清晰 */
     padding: 40px;
     text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-container {
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 300px;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.05);
 }
 
 .header h1 {
     font-size: 2.5em;
     margin-bottom: 10px;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 .header p {
     font-size: 1.1em;
-    opacity: 0.9;
+    color: rgba(255,255,255,0.9);
+    opacity: 1;
 }
 
 /* 导航 */
@@ -45,7 +67,7 @@ body {
     justify-content: center;
     gap: 20px;
     padding: 20px;
-    background: #f8f9fa;
+    background: #fdfdfd;
     border-bottom: 1px solid #e9ecef;
 }
 
@@ -166,6 +188,14 @@ body {
     box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
 }
 
+/* 新增按钮点击特效 */
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98); /* 点击时轻微缩小 */
+    box-shadow: 0 5px 10px rgba(102, 126, 234, 0.4);
+    opacity: 0.9;
+}
+
+
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -259,6 +289,10 @@ body {
 @media (max-width: 768px) {
     .header h1 {
         font-size: 2em;
+    }
+    
+    .logo {
+        max-width: 200px;
     }
     
     .content {

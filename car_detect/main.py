@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import traceback
+from pathlib import Path
 
 from config import settings, init_directories
 from utils.logger import log
@@ -47,8 +48,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载静态文件
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# 挂载静态文件（使用绝对路径）
+STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # 注册路由模块
 from sensor.sensor_api import router as sensor_router
@@ -78,7 +80,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def root():
     """返回主页"""
     try:
-        with open("static/index.html", encoding="utf-8") as f:
+        index_file = STATIC_DIR / "index.html"
+        with open(index_file, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return JSONResponse(
@@ -91,7 +94,8 @@ async def root():
 async def history():
     """返回历史记录页面"""
     try:
-        with open("static/history.html", encoding="utf-8") as f:
+        history_file = STATIC_DIR / "history.html"
+        with open(history_file, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return JSONResponse(
@@ -104,7 +108,22 @@ async def history():
 async def viewer_3d():
     """返回3D模型查看页面"""
     try:
-        with open("static/3d-viewer.html", encoding="utf-8") as f:
+        viewer_file = STATIC_DIR / "3d-viewer.html"
+        with open(viewer_file, encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={"code": -1, "msg": "页面不存在", "data": None}
+        )
+
+# 3D损伤可视化页面
+@app.get("/damage-viewer.html", response_class=HTMLResponse)
+async def damage_viewer():
+    """返回3D损伤可视化页面"""
+    try:
+        damage_file = STATIC_DIR / "damage-viewer.html"
+        with open(damage_file, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return JSONResponse(

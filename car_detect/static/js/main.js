@@ -1,4 +1,5 @@
-// API配置
+// 演示模式配置 - 设置为 false 使用真实后端
+const DEMO_MODE = false;
 const API_BASE = '/api/v1';
 
 // DOM元素
@@ -109,20 +110,28 @@ async function handleSubmit() {
         loadingSection.classList.add('show');
         resultSection.classList.remove('show');
         
-        // 准备表单数据
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('vehicle_type', vehicleType);
+        let data;
         
-        // 发送请求
-        const response = await fetch(`${API_BASE}/models/detect`, {
-            method: 'POST',
-            body: formData
-        });
+        if (DEMO_MODE) {
+            // 演示模式：模拟检测结果
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 模拟延迟
+            data = generateDemoResult(file.name);
+        } else {
+            // 准备表单数据
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('vehicle_type', vehicleType);
+            
+            // 发送请求到后端
+            const response = await fetch(`${API_BASE}/models/detect`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            data = await response.json();
+        }
         
-        const data = await response.json();
-        
-        if (data.code === 0) {
+        if (data.code === 0 || DEMO_MODE) {
             displayResult(data);
             showNotification('检测成功！', 'success');
         } else {
@@ -139,6 +148,33 @@ async function handleSubmit() {
     }
 }
 
+function generateDemoResult(filename) {
+    // 生成演示用的检测结果
+    const vehicleTypes = {
+        'sedan': '轿车',
+        'suv': 'SUV',
+        'truck': '卡车',
+        'van': '面包车',
+        'other': '其他'
+    };
+    
+    const vehicleType = vehicleTypeSelect.value;
+    const vehicleTypeName = vehicleTypes[vehicleType] || '车辆';
+    
+    return {
+        code: 0,
+        msg: 'success',
+        data: {
+            filename: filename,
+            report: `# ${vehicleTypeName}检测报告\n\n## 基本信息\n- 车辆类型：${vehicleTypeName}\n- 检测时间：${new Date().toLocaleString()}\n- 文件名：${filename}\n\n## 检测结果\n### 外观状况\n- 车身整体状况良好\n- 未发现明显划痕或凹陷\n- 车漆光泽度正常\n\n### 安全检测\n- 轮胎磨损程度：正常\n- 刹车系统：正常\n- 灯光系统：正常\n\n### 建议\n- 建议定期保养\n- 注意检查轮胎气压\n- 保持车辆清洁\n\n---\n*此为演示报告，实际检测需要连接后端AI服务*`,
+            detections: {
+                detection_count: Math.floor(Math.random() * 5) + 1
+            },
+            processing_time: new Date().toISOString()
+        }
+    };
+}
+
 function displayResult(data) {
     const detectionData = data.data;
     
@@ -148,41 +184,61 @@ function displayResult(data) {
         
         <!-- 图片预览与Canvas叠加层 -->
         <div class="image-preview-container" style="position: relative; margin: 20px 0;">
-            <img id="resultImage" src="${detectionData.image_url}" alt="检测结果" style="max-width: 100%; border-radius: 10px;">
+            <img id="resultImage" src="${detectionData.image_url}" alt="检测结果" style="max-width: 100%; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">
             <canvas id="damageCanvas" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
         </div>
         
-        <!-- 检测详情卡片 -->
-        <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <h3 style="color: #667eea; margin-bottom: 15px;">📊 检测统计</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
-                    <div style="font-size: 0.9em; color: #666;">文件名</div>
-                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${detectionData.filename}</div>
-                </div>
-                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
-                    <div style="font-size: 0.9em; color: #666;">检测对象数</div>
-                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${detectionData.detections.detection_count}</div>
-                </div>
-                <div style="padding: 15px; background: #f8f9ff; border-radius: 8px;">
-                    <div style="font-size: 0.9em; color: #666;">处理时间</div>
-                    <div style="font-weight: 600; color: #333; margin-top: 5px;">${new Date(detectionData.processing_time).toLocaleString()}</div>
-                </div>
+        <!-- 检测统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">📁</div>
+                <div class="stat-label">${detectionData.filename}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${detectionData.detections.detection_count}</div>
+                <div class="stat-label">检测数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">⏱️</div>
+                <div class="stat-label">${new Date(detectionData.processing_time).toLocaleString()}</div>
             </div>
         </div>
         
+        <!-- 检测结果列表 -->
+        <div style="margin-top: 20px;">
+            <h3 style="color: #f8fafc; font-weight: 600; margin-bottom: 15px; font-size: 1.1em;">🔍 损伤检测结果</h3>
+            ${detectionData.detections.results && detectionData.detections.results.length > 0 ? 
+                detectionData.detections.results.map((dmg, index) => `
+                    <div class="detection-card">
+                        <div class="type">${dmg.type}</div>
+                        <div class="location">📍 ${dmg.location || '未知位置'}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${Math.round(dmg.confidence * 100)}%"></div>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 13px; color: #94a3b8;">
+                            置信度: ${Math.round(dmg.confidence * 100)}%
+                        </div>
+                    </div>
+                `).join('') : 
+                '<div style="padding: 20px; text-align: center; color: #94a3b8; background: rgba(99, 102, 241, 0.1); border-radius: 12px;">未检测到损伤</div>'
+            }
+        </div>
+        
         <!-- 检测报告 -->
-        <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <h3 style="color: #667eea; margin-bottom: 15px;">📝 AI分析报告</h3>
+        <div style="margin-top: 20px; padding: 25px; background: rgba(0,0,0,0.2); border-radius: 14px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="color: #6366f1; margin-bottom: 15px; font-size: 1.2em; font-weight: 600;">📝 AI分析报告</h3>
             <div class="report-content">
                 ${formatReport(detectionData.report)}
             </div>
         </div>
         
         <!-- 3D模型跳转按钮 -->
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="window.location.href='/3d-viewer.html'" class="btn btn-secondary" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <div style="text-align: center; margin-top: 25px;">
+            <button onclick="window.location.href='/3d-viewer.html'" class="btn btn-secondary">
                 🎨 查看3D模型
+            </button>
+            <button onclick="window.location.href='/damage-viewer.html'" class="btn btn-primary" style="margin-left: 12px;">
+                🔍 查看3D损伤
             </button>
         </div>
     `;
@@ -320,3 +376,50 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// 按钮波纹点击特效
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const rect = button.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255, 255, 255, 0.5);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: rippleEffect 0.6s linear;
+                    pointer-events: none;
+                `;
+                
+                button.style.position = 'relative';
+                button.style.overflow = 'hidden';
+                button.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+    }, 100);
+});
+
+// 添加波纹动画样式
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `
+    @keyframes rippleEffect {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(rippleStyle);

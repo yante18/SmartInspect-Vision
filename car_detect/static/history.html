@@ -4,57 +4,253 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>历史记录 - 智检慧眼</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260609">
     <style>
+        :root {
+            --card-bg: rgba(30, 27, 75, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --primary-color: #6366f1;
+            --success-color: #10b981;
+        }
+
+        .history-container {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
-        
+
         .history-table th,
         .history-table td {
-            padding: 15px;
+            padding: 16px 20px;
             text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--card-border);
         }
-        
+
         .history-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+            color: var(--text-primary);
             font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.3px;
         }
-        
-        .history-table tr:hover {
-            background: #f8f9ff;
+
+        .history-table tbody tr {
+            transition: all 0.3s ease;
         }
-        
+
+        .history-table tbody tr:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(5px);
+        }
+
+        .history-table td {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
         .status-badge {
-            padding: 5px 12px;
+            padding: 5px 14px;
             border-radius: 20px;
-            font-size: 0.85em;
+            font-size: 12px;
             font-weight: 600;
         }
-        
+
         .status-success {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
         }
-        
+
         .status-pending {
-            background: #fff3cd;
-            color: #856404;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
         }
-        
+
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #999;
+            padding: 80px 20px;
+            color: var(--text-secondary);
         }
-        
+
         .empty-state-icon {
-            font-size: 4em;
+            font-size: 5em;
             margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .empty-state h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        /* Modal 样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            margin: 5% auto;
+            padding: 35px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.4em;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            padding: 5px 12px;
+            transition: all 0.3s ease;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(90deg);
+        }
+
+        .report-content {
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .report-content h1,
+        .report-content h2,
+        .report-content h3 {
+            color: var(--primary-color);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .report-content p {
+            margin: 10px 0;
+        }
+
+        .report-content ul,
+        .report-content ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+
+        .report-content strong {
+            color: var(--text-primary);
+        }
+
+        .detail-info {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 20px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .detail-info p {
+            margin: 10px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .detail-info strong {
+            color: var(--primary-color);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            margin-right: 8px;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .pagination-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        #pageInfo {
+            color: var(--text-secondary);
+            font-size: 14px;
         }
     </style>
 </head>
@@ -62,6 +258,9 @@
     <div class="container">
         <!-- 头部 -->
         <header class="header">
+            <div class="logo-container">
+                <img src="/static/images/logo.png?v=20260609" alt="智检慧眼 Logo" class="logo">
+            </div>
             <h1>📋 检测历史记录</h1>
             <p>查看您的所有车辆检测记录</p>
         </header>
@@ -70,6 +269,8 @@
         <nav class="nav">
             <a href="/">车辆检测</a>
             <a href="/history.html" class="active">历史记录</a>
+            <a href="/3d-viewer.html">3D模型查看</a>
+            <a href="/damage-viewer.html">3D损伤查看</a>
             <a href="/docs" target="_blank">API文档</a>
         </nav>
 
@@ -83,11 +284,24 @@
             
             <!-- 分页控件 -->
             <div id="pagination" style="display: none; text-align: center; margin-top: 30px;">
-                <button class="btn" id="prevBtn" onclick="loadHistory(currentPage - 1)">上一页</button>
-                <span id="pageInfo" style="margin: 0 15px;"></span>
-                <button class="btn" id="nextBtn" onclick="loadHistory(currentPage + 1)">下一页</button>
+                <button class="pagination-btn" id="prevBtn" onclick="loadHistory(currentPage - 1)">上一页</button>
+                <span id="pageInfo" style="margin: 0 20px;"></span>
+                <button class="pagination-btn" id="nextBtn" onclick="loadHistory(currentPage + 1)">下一页</button>
             </div>
         </main>
+    </div>
+
+    <!-- 详情 Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 检测报告详情</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <!-- 详情内容将在这里动态加载 -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -95,8 +309,8 @@
         let currentPage = 1;
         const pageSize = 10;
         let totalRecords = 0;
+        let allRecords = [];
 
-        // 页面加载时获取历史记录
         document.addEventListener('DOMContentLoaded', function() {
             loadHistory(1);
         });
@@ -108,14 +322,13 @@
             const container = document.getElementById('historyContainer');
             
             try {
-                // 显示加载状态
-                container.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;"><p>加载中...</p></div>';
+                container.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;"><div class="spinner" style="width: 40px; height: 40px;"></div><p style="margin-top: 15px;">加载中...</p></div>';
                 
-                // 请求数据
                 const response = await fetch(`${API_BASE}/models/history?page=${page}&page_size=${pageSize}`);
                 const result = await response.json();
                 
                 if (result.code === 0) {
+                    allRecords = result.data.records;
                     displayHistory(result.data);
                 } else {
                     throw new Error(result.msg || '加载失败');
@@ -151,20 +364,20 @@
                 return;
             }
             
-            // 构建表格
             let html = `
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>原始文件名</th>
-                            <th>车辆类型</th>
-                            <th>检测对象数</th>
-                            <th>检测时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="history-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>原始文件名</th>
+                                <th>车辆类型</th>
+                                <th>检测数量</th>
+                                <th>检测时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
             
             data.records.forEach(record => {
@@ -172,7 +385,9 @@
                     'sedan': '轿车',
                     'suv': 'SUV',
                     'truck': '卡车',
-                    'bus': '公交车'
+                    'bus': '公交车',
+                    'van': '面包车',
+                    'other': '其他'
                 }[record.vehicle_type] || record.vehicle_type;
                 
                 const time = new Date(record.created_at).toLocaleString('zh-CN');
@@ -185,21 +400,21 @@
                         <td>${record.detection_count}</td>
                         <td>${time}</td>
                         <td>
-                            <button class="btn btn-small" onclick="viewDetail(${record.id})">查看详情</button>
-                            <button class="btn btn-small btn-danger" onclick="deleteRecord(${record.id})">删除</button>
+                            <button class="btn-small" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;" onclick="viewDetail(${record.id})">查看详情</button>
+                            <button class="btn-small btn-danger" onclick="deleteRecord(${record.id})">删除</button>
                         </td>
                     </tr>
                 `;
             });
             
             html += `
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             `;
             
             container.innerHTML = html;
             
-            // 更新分页信息
             const totalPages = Math.ceil(totalRecords / pageSize);
             document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条记录`;
             document.getElementById('prevBtn').disabled = currentPage <= 1;
@@ -208,9 +423,86 @@
         }
 
         function viewDetail(id) {
-            // TODO: 实现查看详情功能
-            alert('查看详情功能开发中，记录ID: ' + id);
+            const record = allRecords.find(r => r.id === id);
+            
+            if (!record) {
+                alert('未找到该记录');
+                return;
+            }
+            
+            const modal = document.getElementById('detailModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            const time = new Date(record.created_at).toLocaleString('zh-CN');
+            const vehicleTypeText = {
+                'sedan': '轿车',
+                'suv': 'SUV',
+                'truck': '卡车',
+                'bus': '公交车',
+                'van': '面包车',
+                'other': '其他'
+            }[record.vehicle_type] || record.vehicle_type;
+            
+            let html = `
+                <div class="detail-info">
+                    <p><strong>记录 ID:</strong> ${record.id}</p>
+                    <p><strong>文件名:</strong> ${record.original_name}</p>
+                    <p><strong>车辆类型:</strong> ${vehicleTypeText}</p>
+                    <p><strong>检测数量:</strong> ${record.detection_count}</p>
+                    <p><strong>平均置信度:</strong> ${(record.confidence_score * 100).toFixed(2)}%</p>
+                    <p><strong>检测时间:</strong> ${time}</p>
+                </div>
+            `;
+            
+            if (record.report) {
+                html += `
+                    <h3 style="color: #6366f1; margin-top: 20px;">📝 检测报告</h3>
+                    <div class="report-content">
+                        ${formatReport(record.report)}
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                        <p>暂无检测报告</p>
+                    </div>
+                `;
+            }
+            
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
         }
+        
+        function formatReport(reportText) {
+            let html = reportText;
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+            html = html.replace(/\n\n/g, '<br><br>');
+            html = html.replace(/\n/g, '<br>');
+            html = html.replace(/^---$/gm, '<hr>');
+            return html;
+        }
+        
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
 
         async function deleteRecord(id) {
             if (!confirm('确定要删除这条记录吗？')) {
@@ -225,7 +517,6 @@
                 
                 if (result.code === 0) {
                     alert('删除成功');
-                    // 重新加载当前页
                     loadHistory(currentPage);
                 } else {
                     throw new Error(result.msg || '删除失败');
